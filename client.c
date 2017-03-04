@@ -11,3 +11,8 @@ int main(int argc, char *argv[])
 
     return 0;
 }
+
+char *get(char *arg);
+char *set(char *key, char *value);
+
+
