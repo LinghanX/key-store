@@ -1,18 +1,20 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <errno.h>
 #include <string.h>
+#include <netdb.h>
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
 
-int main(int argc, char *argv[])
-{
-    if(strcmp(argv[1], "get")){
+#define PORT "3344"
+#define MAXDATASIZE 100
 
-    } else if (strcmp(argv[1], "set")){
-
+void * get_in_addr(struct sockaddr *sa){
+    if(sa->sa_family == AF_INET){
+	return &(((struct sockaddr_in*) sa) -> sin_addr);
     }
 
-    return 0;
+    return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
-
-char *get(char *arg);
-char *set(char *key, char *value);
-
-
