@@ -10,7 +10,14 @@
 #include <arpa/inet.h>
 
 #define PORT "3344"
-#define MAXDATASIZE 100
+#define MAXDATASIZE 4096
+
+struct info_package{
+    int method;
+    char *key;
+    char *value;
+    size_t key_size, value_size;
+};
 
 void * get_in_addr(struct sockaddr *sa){
     if(sa->sa_family == AF_INET){
@@ -20,6 +27,10 @@ void * get_in_addr(struct sockaddr *sa){
     return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
+// argv[1] should be server address
+// argv[2] should be method
+// argv[3] should be key
+// argv[4] should be value, if provided
 int main(int argc, char *argv[]){
     int sockfd, numbytes;
     char buf[MAXDATASIZE];
@@ -27,10 +38,50 @@ int main(int argc, char *argv[]){
     int rv;
     char s[INET6_ADDRSTRLEN];
 
+    struct info_package user_info;
+    int method;
+    char *value;
+    char *key;
+    size_t key_size, value_size;
+
+    if(argc != 5){
+	perror("wrong number of argument");
+	exit(1);
+    }
+
+    printf("checkpoint 0\n");
+
+    if(strcmp(argv[2], "get") == 0){
+	printf("checkpoint 1\n");
+	method = 1;
+    } else if(strcmp(argv[2], "put") == 0){
+	printf("checkpoint 1\n");
+	method = 2;
+    }
+
+    key = argv[3];
+    key_size = strlen(argv[3]);
+    value = argv[4];
+    value_size = strlen(argv[4]);
+
+    printf("checkpoint 2\n");
+
+    char key_buffer[key_size], value_buffer[value_size];
+    strcpy(key_buffer, argv[3]);
+    strcpy(value_buffer, argv[4]);
+
+    user_info.method = method;
+    user_info.value = value;
+    user_info.key = key;
+    user_info.value_size = value_size;
+    user_info.key_size = key_size;
+
+    /*
     if(argc != 2){
 	fprintf(stderr, "usage: client hostname\n");
 	exit(1);
     }
+    */
 
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC;
@@ -66,6 +117,21 @@ int main(int argc, char *argv[]){
 
     inet_ntop(p->ai_family, get_in_addr((struct sockaddr *)p->ai_addr), s, sizeof s);
     printf("client: connecting to %s\n", s);
+
+    if(send(sockfd, &user_info, sizeof(struct info_package), 0) < 0){
+	perror("sending user info");
+	exit(1);
+    }
+
+    if(send(sockfd, key_buffer, key_size, 0) < 0){
+	perror("sending key info");
+	exit(1);
+    }
+
+    if(send(sockfd, value_buffer, value_size, 0) < 0){
+	perror("sending value info");
+	exit(1);
+    }
 
     freeaddrinfo(servinfo);
 

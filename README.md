@@ -12,3 +12,10 @@ nc 0.0.0.0 3344
 
 to send signal to server for testing
 
+
+use:
+```
+./client "localhost"
+```
+
+to send signal to client for testing
