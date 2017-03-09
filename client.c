@@ -14,8 +14,6 @@
 
 struct info_package{
     int method;
-    char *key;
-    char *value;
     size_t key_size, value_size;
 };
 
@@ -40,8 +38,6 @@ int main(int argc, char *argv[]){
 
     struct info_package user_info;
     int method;
-    char *value;
-    char *key;
     size_t key_size, value_size;
 
     if(argc != 5){
@@ -59,9 +55,7 @@ int main(int argc, char *argv[]){
 	method = 2;
     }
 
-    key = argv[3];
     key_size = strlen(argv[3]);
-    value = argv[4];
     value_size = strlen(argv[4]);
 
     printf("checkpoint 2\n");
@@ -71,8 +65,6 @@ int main(int argc, char *argv[]){
     strcpy(value_buffer, argv[4]);
 
     user_info.method = method;
-    user_info.value = value;
-    user_info.key = key;
     user_info.value_size = value_size;
     user_info.key_size = key_size;
 
