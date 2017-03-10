@@ -1,3 +1,6 @@
+/*
+ * client sends put(k, v) to server
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -29,6 +32,7 @@ void * get_in_addr(struct sockaddr *sa){
 // argv[2] should be method
 // argv[3] should be key
 // argv[4] should be value, if provided
+
 int main(int argc, char *argv[]){
     int sockfd, numbytes;
     char buf[MAXDATASIZE];
@@ -45,20 +49,19 @@ int main(int argc, char *argv[]){
 	exit(1);
     }
 
-    printf("checkpoint 0\n");
-
     if(strcmp(argv[2], "get") == 0){
-	printf("checkpoint 1\n");
 	method = 1;
     } else if(strcmp(argv[2], "put") == 0){
-	printf("checkpoint 1\n");
 	method = 2;
     }
 
     key_size = strlen(argv[3]);
     value_size = strlen(argv[4]);
 
-    printf("checkpoint 2\n");
+    char *serv_addr, *serv_service;
+
+    serv_addr = strtok(argv[1], ":");
+    serv_service = strtok(NULL, "");
 
     char key_buffer[key_size], value_buffer[value_size];
     strcpy(key_buffer, argv[3]);
@@ -67,13 +70,6 @@ int main(int argc, char *argv[]){
     user_info.method = method;
     user_info.value_size = value_size;
     user_info.key_size = key_size;
-
-    /*
-    if(argc != 2){
-	fprintf(stderr, "usage: client hostname\n");
-	exit(1);
-    }
-    */
 
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC;

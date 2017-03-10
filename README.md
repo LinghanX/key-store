@@ -19,3 +19,8 @@ use:
 ```
 
 to send signal to client for testing
+
+## new edition 3/10
+1. setup server using ./server 1 localhost:3345
+2. setup node using ./node 
+3. use client: ./client localhost:3344 get hello world
