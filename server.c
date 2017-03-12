@@ -14,6 +14,8 @@
 
 #define PORTAL "3344"
 #define CONNECTION_POOL 10
+#define GET (1)
+#define PUT (2)
 
 struct info_package{
     int method; // 1. get; 2. put
@@ -25,21 +27,15 @@ struct node_info {
     int entries;
 };
 
-//Division method hasing from cs.yale.edu
-int hash(const char *s, int m){
-    int h;
-    unsigned const char *us;
+unsigned long hash(unsigned char *s){
+    unsigned long hash = 5381;
+    int c;
 
-    us = (unsigned const char *) s;
-    h = 0;
-    while(*us != '\0'){
-	h = (h * 256 + *us) % m;
-	us++;
+    while( c = *s++ ){
+	hash = ((hash <<5) + hash) + c;
     }
-
-    return h;
+    return hash;
 }
-// end hash
 
 void sigchld_handler(int s)
 {
@@ -169,7 +165,7 @@ int main(int argc, char *argv[])
 	}
 
 
-	if(incoming_package.method == 1){
+	if(incoming_package.method == GET){
 	    printf("checkpoint0\n");
 	    // find correct node
 	    /*
@@ -220,15 +216,18 @@ int main(int argc, char *argv[])
 	    close(node_fd);
 	    send(new_fd, get_buffer, 4096, 0);
 	    continue;
-	} else if (incoming_package.method == 2){
-	    if(recv(new_fd, value_buffer, incoming_package.key_size, 0) < 0){
+	} else if (incoming_package.method == PUT){
+	    if(recv(new_fd, value_buffer, incoming_package.value_size, 0) < 0){
 		perror("recv error");
 		exit(1);
 	    }
 	    printf("checkpoint0\n");
+	    unsigned long entry_value = hash(key_buffer);
+	    int idea_node = entry_value % num_of_nodes;
+	    printf("%s\n", idea_node);
+
 	    // find correct node
 	    /*
-	    int entry_value = hash(key_buffer, num_of_nodes);
 	    int target_node = entry_value % num_of_nodes;
 	    */
 	    int target_node = 0;

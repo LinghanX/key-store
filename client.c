@@ -44,11 +44,6 @@ int main(int argc, char *argv[]){
     int method;
     size_t key_size, value_size;
 
-    if(argc != 5){
-	perror("wrong number of argument");
-	exit(1);
-    }
-
     if(strcmp(argv[2], "get") == 0){
 	method = 1;
     } else if(strcmp(argv[2], "put") == 0){
@@ -56,7 +51,7 @@ int main(int argc, char *argv[]){
     }
 
     key_size = strlen(argv[3]);
-    value_size = strlen(argv[4]);
+    value_size = argv[4] ? strlen(argv[4]) : 5; // if no value is given, set default "null"
 
     char *serv_addr, *serv_service;
 
@@ -65,7 +60,7 @@ int main(int argc, char *argv[]){
 
     char key_buffer[key_size], value_buffer[value_size];
     strcpy(key_buffer, argv[3]);
-    strcpy(value_buffer, argv[4]);
+    strcpy(value_buffer, argv[4]? argv[4] : "null");
 
     user_info.method = method;
     user_info.value_size = value_size;
