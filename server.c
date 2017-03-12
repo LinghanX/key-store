@@ -166,14 +166,8 @@ int main(int argc, char *argv[])
 
 
 	if(incoming_package.method == GET){
-	    printf("checkpoint0\n");
-	    // find correct node
-	    /*
-	    int entry_value = hash(key_buffer, num_of_nodes);
+	    size_t entry_value =(size_t) hash(key_buffer);
 	    int target_node = entry_value % num_of_nodes;
-	    */
-	    int target_node = 0;
-	    printf("checkpoint1\n");
 
 	    //establish node connection
 	    int node_fd;
@@ -181,11 +175,6 @@ int main(int argc, char *argv[])
 	    memset(&node_hints, 0, sizeof(node_hints));
 	    node_hints.ai_family = AF_UNSPEC;
 	    hints.ai_socktype = SOCK_STREAM;
-	    printf("checkpoint2\n");
-
-
-	    printf("%d\n", available_nodes[target_node].entries);
-	    printf("%s\n", available_nodes[target_node].addr);
 
 	    if((getaddrinfo(available_nodes[target_node].addr, available_nodes[target_node].service, &hints, &nodeinfo))!= 0){
 		perror("node binding error");
@@ -221,17 +210,9 @@ int main(int argc, char *argv[])
 		perror("recv error");
 		exit(1);
 	    }
-	    printf("checkpoint0\n");
-	    unsigned long entry_value = hash(key_buffer);
-	    int idea_node = entry_value % num_of_nodes;
-	    printf("%s\n", idea_node);
 
-	    // find correct node
-	    /*
+	    size_t entry_value =(size_t) hash(key_buffer);
 	    int target_node = entry_value % num_of_nodes;
-	    */
-	    int target_node = 0;
-	    printf("checkpoint1\n");
 
 	    //establish node connection
 	    int node_fd;
@@ -240,10 +221,6 @@ int main(int argc, char *argv[])
 	    node_hints.ai_family = AF_UNSPEC;
 	    hints.ai_socktype = SOCK_STREAM;
 	    printf("checkpoint2\n");
-
-
-	    printf("%d\n", available_nodes[target_node].entries);
-	    printf("%s\n", available_nodes[target_node].addr);
 
 	    if((getaddrinfo(available_nodes[target_node].addr, available_nodes[target_node].service, &hints, &nodeinfo))!= 0){
 		perror("node binding error");
