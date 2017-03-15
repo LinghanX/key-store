@@ -147,117 +147,123 @@ int main(int argc, char *argv[])
 	    continue;
 	}
 
-	//receive struct msg
-	if(recv(new_fd, &incoming_package, sizeof(struct info_package), 0) < 0){
-	    perror("recv error");
-	    exit(1);
-	}
-	printf("successfully received method: %d\nkey_size: %d\nvalue_size: %d\n", incoming_package.method,
-		incoming_package.key_size, incoming_package.value_size);
 
-	char key_buffer[incoming_package.key_size], value_buffer[incoming_package.value_size];
-	char get_buffer[4096];
-
-	//receive key 
-	if(recv(new_fd, key_buffer, incoming_package.key_size, 0) < 0){
-	    perror("recv error");
-	    exit(1);
-	}
-
-
-	if(incoming_package.method == GET){
-	    size_t entry_value =(size_t) hash(key_buffer);
-	    int target_node = entry_value % num_of_nodes;
-
-	    //establish node connection
-	    int node_fd;
-	    struct addrinfo node_hints, *nodeinfo, *node;
-	    memset(&node_hints, 0, sizeof(node_hints));
-	    node_hints.ai_family = AF_UNSPEC;
-	    hints.ai_socktype = SOCK_STREAM;
-
-	    if((getaddrinfo(available_nodes[target_node].addr, available_nodes[target_node].service, &hints, &nodeinfo))!= 0){
-		perror("node binding error");
+	// everytime the server received a request, create a fork to process the request
+	if(!fork()){
+	    close(sockfd);
+	    //receive struct msg
+	    if(recv(new_fd, &incoming_package, sizeof(struct info_package), 0) < 0){
+		perror("recv error");
 		exit(1);
 	    }
+	    printf("successfully received method: %d\nkey_size: %d\nvalue_size: %d\n", incoming_package.method,
+		    incoming_package.key_size, incoming_package.value_size);
 
-	    printf("checkpoint3\n");
-	    for(node = nodeinfo; node != NULL; node = node-> ai_next){
-		if((node_fd = socket(node->ai_family, 
-				node->ai_socktype,
-				node->ai_protocol)) == -1){
-		    perror("client: socket");
-		    continue;
-		}
+	    char key_buffer[incoming_package.key_size], value_buffer[incoming_package.value_size];
+	    char get_buffer[4096];
 
-		if(connect(node_fd, node->ai_addr, node->ai_addrlen) == -1){
-		    close(node_fd);
-		    perror("client: connect");
-
-		    continue;
-		}
-		break;
-	    }
-	    send(node_fd, &incoming_package, sizeof(struct info_package), 0);
-	    send(node_fd, key_buffer, incoming_package.key_size, 0);
-
-	    recv(node_fd, get_buffer, 4096, 0);
-	    close(node_fd);
-	    send(new_fd, get_buffer, 4096, 0);
-	    continue;
-	} else if (incoming_package.method == PUT){
-	    if(recv(new_fd, value_buffer, incoming_package.value_size, 0) < 0){
+	    //receive key 
+	    if(recv(new_fd, key_buffer, incoming_package.key_size, 0) < 0){
 		perror("recv error");
 		exit(1);
 	    }
 
-	    size_t entry_value =(size_t) hash(key_buffer);
-	    int target_node = entry_value % num_of_nodes;
 
-	    //establish node connection
-	    int node_fd;
-	    struct addrinfo node_hints, *nodeinfo, *node;
-	    memset(&node_hints, 0, sizeof(node_hints));
-	    node_hints.ai_family = AF_UNSPEC;
-	    hints.ai_socktype = SOCK_STREAM;
-	    printf("checkpoint2\n");
+	    if(incoming_package.method == GET){
+		size_t entry_value =(size_t) hash(key_buffer);
+		int target_node = entry_value % num_of_nodes;
 
-	    if((getaddrinfo(available_nodes[target_node].addr, available_nodes[target_node].service, &hints, &nodeinfo))!= 0){
-		perror("node binding error");
+		//establish node connection
+		int node_fd;
+		struct addrinfo node_hints, *nodeinfo, *node;
+		memset(&node_hints, 0, sizeof(node_hints));
+		node_hints.ai_family = AF_UNSPEC;
+		hints.ai_socktype = SOCK_STREAM;
+
+		if((getaddrinfo(available_nodes[target_node].addr, available_nodes[target_node].service, &hints, &nodeinfo))!= 0){
+		    perror("node binding error");
+		    exit(1);
+		}
+
+		printf("checkpoint3\n");
+		for(node = nodeinfo; node != NULL; node = node-> ai_next){
+		    if((node_fd = socket(node->ai_family, 
+				    node->ai_socktype,
+				    node->ai_protocol)) == -1){
+			perror("client: socket");
+			continue;
+		    }
+
+		    if(connect(node_fd, node->ai_addr, node->ai_addrlen) == -1){
+			close(node_fd);
+			perror("client: connect");
+
+			continue;
+		    }
+		    break;
+		}
+		send(node_fd, &incoming_package, sizeof(struct info_package), 0);
+		send(node_fd, key_buffer, incoming_package.key_size, 0);
+
+		recv(node_fd, get_buffer, 4096, 0);
+		close(node_fd);
+		send(new_fd, get_buffer, 4096, 0);
+		exit(0);
+	    } else if (incoming_package.method == PUT){
+		if(recv(new_fd, value_buffer, incoming_package.value_size, 0) < 0){
+		    perror("recv error");
+		    exit(1);
+		}
+
+		size_t entry_value =(size_t) hash(key_buffer);
+		int target_node = entry_value % num_of_nodes;
+
+		//establish node connection
+		int node_fd;
+		struct addrinfo node_hints, *nodeinfo, *node;
+		memset(&node_hints, 0, sizeof(node_hints));
+		node_hints.ai_family = AF_UNSPEC;
+		hints.ai_socktype = SOCK_STREAM;
+		printf("checkpoint2\n");
+
+		if((getaddrinfo(available_nodes[target_node].addr, available_nodes[target_node].service, &hints, &nodeinfo))!= 0){
+		    perror("node binding error");
+		    exit(1);
+		}
+
+		printf("checkpoint3\n");
+		for(node = nodeinfo; node != NULL; node = node-> ai_next){
+		    if((node_fd = socket(node->ai_family, 
+				    node->ai_socktype,
+				    node->ai_protocol)) == -1){
+			perror("client: socket");
+			continue;
+		    }
+
+		    if(connect(node_fd, node->ai_addr, node->ai_addrlen) == -1){
+			close(node_fd);
+			perror("client: connect");
+
+			continue;
+		    }
+		    break;
+		}
+		send(node_fd, &incoming_package, sizeof(struct info_package), 0);
+		send(node_fd, key_buffer, incoming_package.key_size, 0);
+		send(node_fd, value_buffer, incoming_package.value_size, 0);
+
+		recv(node_fd, get_buffer, 4096, 0);
+		close(node_fd);
+		send(new_fd, get_buffer, 4096, 0);
+		exit(0);
+	    } else {
+		perror("unrecognised method\n");
 		exit(1);
 	    }
 
-	    printf("checkpoint3\n");
-	    for(node = nodeinfo; node != NULL; node = node-> ai_next){
-		if((node_fd = socket(node->ai_family, 
-				node->ai_socktype,
-				node->ai_protocol)) == -1){
-		    perror("client: socket");
-		    continue;
-		}
+	    close(new_fd);
 
-		if(connect(node_fd, node->ai_addr, node->ai_addrlen) == -1){
-		    close(node_fd);
-		    perror("client: connect");
-
-		    continue;
-		}
-		break;
-	    }
-	    send(node_fd, &incoming_package, sizeof(struct info_package), 0);
-	    send(node_fd, key_buffer, incoming_package.key_size, 0);
-	    send(node_fd, value_buffer, incoming_package.value_size, 0);
-
-	    recv(node_fd, get_buffer, 4096, 0);
-	    close(node_fd);
-	    send(new_fd, get_buffer, 4096, 0);
-	    continue;
-	} else {
-	    perror("unrecognised method\n");
-	    exit(1);
-	    continue;
 	}
-
 	close(new_fd);
     }
 
