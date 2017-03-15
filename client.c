@@ -11,6 +11,7 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include "helper.h"
 
 #define PORT "3344"
 #define MAXDATASIZE 4096
@@ -36,28 +37,20 @@ void * get_in_addr(struct sockaddr *sa){
 int main(int argc, char *argv[]){
     int sockfd, numbytes;
     char buf[MAXDATASIZE];
-    struct addrinfo hints, *servinfo, *p;
-    int rv;
-    char s[INET6_ADDRSTRLEN];
 
     struct info_package user_info;
     int method;
     size_t key_size, value_size;
 
+    //process user request info
     if(strcmp(argv[2], "get") == 0){
 	method = 1;
     } else if(strcmp(argv[2], "put") == 0){
 	method = 2;
     }
-
+    
     key_size = strlen(argv[3]);
     value_size = argv[4] ? strlen(argv[4]) : 5; // if no value is given, set default "null"
-
-    char *serv_addr, *serv_service;
-
-    serv_addr = strtok(argv[1], ":");
-    serv_service = strtok(NULL, "");
-
     char key_buffer[key_size], value_buffer[value_size];
     strcpy(key_buffer, argv[3]);
     strcpy(value_buffer, argv[4]? argv[4] : "null");
@@ -66,40 +59,12 @@ int main(int argc, char *argv[]){
     user_info.value_size = value_size;
     user_info.key_size = key_size;
 
-    memset(&hints, 0, sizeof hints);
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = SOCK_STREAM;
+    char *serv_addr, *serv_service;
+    serv_addr = strtok(argv[1], ":");
+    serv_service = strtok(NULL, "");
 
-    if((rv = getaddrinfo(argv[1], PORT, &hints, &servinfo)) != 0){
-	fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
-	return 1;
-    }
-
-    for(p = servinfo; p != NULL; p = p-> ai_next){
-	if((sockfd = socket(p->ai_family, 
-			    p->ai_socktype,
-			    p->ai_protocol)) == -1){
-	    perror("client: socket");
-	    continue;
-	}
-
-	if(connect(sockfd, p->ai_addr, p->ai_addrlen) == -1){
-	    close(sockfd);
-	    perror("client: connect");
-
-	    continue;
-	}
-
-	break;
-    }
-
-    if(p == NULL){
-	fprintf(stderr, "client: failed to connect\n");
-	return 2;
-    }
-
-    inet_ntop(p->ai_family, get_in_addr((struct sockaddr *)p->ai_addr), s, sizeof s);
-    printf("client: connecting to %s\n", s);
+    sockfd = open_clientfd(serv_addr, serv_service);
+    printf("output fd is: %d\n", sockfd);
 
     if(send(sockfd, &user_info, sizeof(struct info_package), 0) < 0){
 	perror("sending user info");
@@ -115,8 +80,6 @@ int main(int argc, char *argv[]){
 	perror("sending value info");
 	exit(1);
     }
-
-    freeaddrinfo(servinfo);
 
     if((numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0)) == -1){
 	perror("recv");
