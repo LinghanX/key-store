@@ -1,6 +1,3 @@
-/*
- * client sends put(k, v) to server
- */
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -13,8 +10,8 @@
 #include <arpa/inet.h>
 #include "helper.h"
 
-#define PORT "3344"
-#define MAXDATASIZE 4096
+#define PORT ("3344")
+#define MAXDATASIZE (4096)
 
 void * get_in_addr(struct sockaddr *sa){
     if(sa->sa_family == AF_INET){
@@ -23,11 +20,6 @@ void * get_in_addr(struct sockaddr *sa){
 
     return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
-
-// argv[1] should be server address
-// argv[2] should be method
-// argv[3] should be key
-// argv[4] should be value, if provided
 
 int main(int argc, char *argv[]){
     int sockfd, numbytes;
