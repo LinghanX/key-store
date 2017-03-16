@@ -1,3 +1,0 @@
-make build
-make check server=10
-//the test would create a router and 10 servers, and a client for testing.

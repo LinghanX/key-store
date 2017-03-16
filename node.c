@@ -13,7 +13,6 @@
 #include "dict.h"
 #include "helper.h"
 
-#define PORTAL ("3345")
 #define CONNECTION_POOL (10)
 #define GET (1)
 #define PUT (2)
@@ -23,16 +22,13 @@ int main(int argc, char *argv[])
     Dict d;
     d = DictCreate();
 
+    char *port = argv[1];
+
     int sockfd, new_fd;
-    struct addrinfo hints, *servinfo, *p;
     struct sockaddr_storage their_addr;
     socklen_t sin_size;
-    struct sigaction sa;
-    int yes = 1;
-    char s[INET6_ADDRSTRLEN];
-    int rv;
 
-    sockfd = open_listenfd(PORTAL, CONNECTION_POOL);
+    sockfd = open_listenfd(port, CONNECTION_POOL);
     printf("node: waiting for connections...\n");
 
     struct info_package incoming_package;
