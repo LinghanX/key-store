@@ -4,6 +4,8 @@ This is an implementation of a distributed key value store system. When a `put` 
 After the target `node` is decided, `server` will send both `key` and `value` to the `node` and expect to get a `successful` response. 
 The `get` request works in a similar way. The algorithm implementation ensures that for each unique `key`, the target `node` remains the same.
 
+A `pthread_mutex_lock` was employed in the `put` section to protect the hash table when contention happens
+
 ## Set up server, node, and client
 
 0. `$ make`

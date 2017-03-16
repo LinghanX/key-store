@@ -12,10 +12,13 @@
 #include <search.h>
 #include "dict.h"
 #include "helper.h"
+#include <pthread.h>
 
 #define CONNECTION_POOL (10)
 #define GET (1)
 #define PUT (2)
+
+static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
 int main(int argc, char *argv[])
 {
@@ -79,7 +82,10 @@ int main(int argc, char *argv[])
 		exit(1);
 	    }
 
+	    pthread_mutex_lock(&lock);
 	    DictInsert(d, key_buffer, value_buffer);
+	    pthread_mutex_unlock(&lock);
+
 	    send(new_fd, "successful!", 10, 0);
 	    continue;
 	} else {

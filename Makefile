@@ -7,6 +7,6 @@ server:
 client:
 	gcc -o client client.c helper.h helper.c
 node: 
-	gcc -o node node.c dict.c helper.h helper.c
+	gcc -o node node.c dict.c helper.h helper.c -lpthread
 clean: 
 	rm -f client server node
