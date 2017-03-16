@@ -16,11 +16,6 @@
 #define PORT "3344"
 #define MAXDATASIZE 4096
 
-struct info_package{
-    int method;
-    size_t key_size, value_size;
-};
-
 void * get_in_addr(struct sockaddr *sa){
     if(sa->sa_family == AF_INET){
 	return &(((struct sockaddr_in*) sa) -> sin_addr);
@@ -64,7 +59,6 @@ int main(int argc, char *argv[]){
     serv_service = strtok(NULL, "");
 
     sockfd = open_clientfd(serv_addr, serv_service);
-    printf("output fd is: %d\n", sockfd);
 
     if(send(sockfd, &user_info, sizeof(struct info_package), 0) < 0){
 	perror("sending user info");

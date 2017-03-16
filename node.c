@@ -18,11 +18,6 @@
 #define GET (1)
 #define PUT (2)
 
-struct info_package{
-    int method;
-    size_t key_size, value_size;
-};
-
 int main(int argc, char *argv[])
 {
     Dict d;

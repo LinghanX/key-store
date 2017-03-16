@@ -11,21 +11,12 @@
 #include <signal.h>
 #include <search.h>
 #include "dict.h"
+#include "helper.h"
 
 #define PORTAL ("3344")
 #define CONNECTION_POOL (10)
 #define GET (1)
 #define PUT (2)
-
-struct info_package{
-    int method; // 1. get; 2. put
-    size_t key_size, value_size;
-};
-
-struct node_info {
-    char *addr, *service;
-    int entries;
-};
 
 unsigned long hash(unsigned char *s){
     unsigned long hash = 5381;
@@ -58,13 +49,9 @@ int main(int argc, char *argv[])
     printf("available nodes: %s\n%s\n%d", available_nodes[0].addr, available_nodes[0].service, available_nodes[0].entries);
 
     int sockfd, new_fd;
-    struct addrinfo hints, *servinfo, *p;
     struct sockaddr_storage their_addr;
     socklen_t sin_size;
     struct sigaction sa;
-    int yes = 1;
-    char s[INET6_ADDRSTRLEN];
-    int rv;
 
     sockfd = open_listenfd(PORTAL, CONNECTION_POOL);
     printf("server: waiting for connections...\n");
