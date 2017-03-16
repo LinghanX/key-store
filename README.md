@@ -15,3 +15,4 @@ The `get` request works in a similar way. The algorithm implementation ensures t
 1. [Bryant & O'HALLARON]: Computer Systems: a programmer's perspective
 2. Beej's guide for network programming
 3. Operating systems: three easy pieces
+4. cs.yale.edu for the handy hashing method
