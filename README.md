@@ -18,3 +18,8 @@ A `pthread_mutex_lock` was employed in the `put` section to protect the hash tab
 2. Beej's guide for network programming
 3. Operating systems: three easy pieces
 4. cs.yale.edu for the handy hashing method
+
+## To-do
+
+1. Dynamically add/drop a server -- using consistant hashing
+2. Data reliability: using Raid 0 or redundancy to avoid data lost when one of the server is damaged
