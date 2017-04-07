@@ -79,3 +79,62 @@ int open_listenfd(char *port, int listenq){
 
     return listenfd;
 }
+
+unsigned long key_value(struct node_info node){
+    char node_content[256];
+    strcpy(node_content, node.addr);
+    strcat(node_content, node.service);
+    return hash(node_content);
+}
+
+void sort(struct node_info *nodes, int num_of_nodes){
+    for(int i = 1; i < num_of_nodes - 1; i++){
+        struct node_info key = nodes[i];
+        int j = i - 1;
+        while(j >=0 && key_value(nodes[j]) > key_value(key)){
+            nodes[j + 1] = nodes[j];
+            j--;
+        }
+
+        nodes[j+1] = key;
+    }
+}
+
+struct node_info find_node(struct node_info* available_nodes,
+                           int size,
+                           unsigned long key_hashed_value){
+    struct node_info candidate;
+    candidate = available_nodes[0];
+    for(int i = 0; i < size; i++){
+        if(key_hashed_value > key_value(candidate)){
+            return candidate;
+        }
+
+        candidate = available_nodes[i];
+    }
+
+    return candidate;
+}
+
+void main(int argc, char* argv[]){
+    struct node_info nodes[3];
+    struct node_info node_1;
+    node_1.service = "localhost:";
+    node_1.addr = "9999";
+    nodes[0] = node_1;
+
+    struct node_info node_2;
+    node_2.service = "localhost:";
+    node_2.addr = "6666";
+    nodes[1] = node_2;
+
+    struct node_info node_3;
+    node_3.service = "localhost:";
+    node_3.addr = "3335";
+    nodes[2] = node_3;
+
+    sort(nodes, 3);
+
+    printf("The sorted nodes are: %s, %s, %s", nodes[0].addr,
+           nodes[1].addr, nodes[2].addr);
+}
