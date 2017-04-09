@@ -39,6 +39,16 @@ int open_clientfd(char *hostname, char *port){
 	return clientfd;
 }
 
+unsigned long hash(unsigned char *s){
+    unsigned long hash = 5381;
+    int c;
+
+    while( c = *s++ ){
+        hash = ((hash <<5) + hash) + c;
+    }
+    return hash;
+}
+
 int open_listenfd(char *port, int listenq){
     struct addrinfo hints, *listp, *p;
     int listenfd, optval = 1;
@@ -116,7 +126,8 @@ struct node_info find_node(struct node_info* available_nodes,
     return candidate;
 }
 
-void main(int argc, char* argv[]){
+/*
+void test(int argc, char* argv[]){
     struct node_info nodes[3];
     struct node_info node_1;
     node_1.service = "localhost:";
@@ -138,3 +149,4 @@ void main(int argc, char* argv[]){
     printf("The sorted nodes are: %s, %s, %s", nodes[0].addr,
            nodes[1].addr, nodes[2].addr);
 }
+ */

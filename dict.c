@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
-
+#include <stdio.h>
 #include "dict.h"
 
 struct elt {
@@ -20,6 +20,22 @@ struct dict {
 #define GROWTH_FACTOR (2)
 #define MAX_LOAD_FACTOR (1)
 
+int DictSize(Dict d) {
+   return d->n;
+}
+/* return one valid key from the dictionary */
+char* DictNextKey(Dict d) {
+    int i;
+    for(i = 0; i < d->size; i++) {
+        if(0 != d->table[i]) {
+            struct elt *entry = d->table[i];
+            if (entry && entry->key) {
+
+                return entry->key;
+            }
+        }
+    }
+}
 /* dictionary initialization code used in both DictCreate and grow */
 Dict
 internalDictCreate(int size)
@@ -182,7 +198,7 @@ DictDelete(Dict d, const char *key)
             free(e->key);
             free(e->value);
             free(e);
-
+            d->n --;
             return;
         }
     }

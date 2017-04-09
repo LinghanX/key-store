@@ -15,11 +15,19 @@
 
 void * get_in_addr(struct sockaddr *sa){
     if(sa->sa_family == AF_INET){
-	return &(((struct sockaddr_in*) sa) -> sin_addr);
+        return &(((struct sockaddr_in*) sa) -> sin_addr);
     }
 
     return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
+
+/*
+ * method 1: -> GET "./client get hello"
+ * method 2: -> PUT "./client put hello world"
+ * method 3: -> ADD "./client add localhost:3344"
+ * method 4: -> DROP "./client drop localhost:3344"
+ *
+ */
 
 int main(int argc, char *argv[]){
     int sockfd, numbytes;
@@ -31,11 +39,18 @@ int main(int argc, char *argv[]){
 
     //process user request info
     if(strcmp(argv[2], "get") == 0){
-	method = 1;
-    } else if(strcmp(argv[2], "put") == 0){
-	method = 2;
+        method = 1;
     }
-    
+    if(strcmp(argv[2], "put") == 0){
+        method = 2;
+    }
+    if(strcmp(argv[2], "add") == 0){
+        method = 3;
+    }
+    if(strcmp(argv[2], "drop") == 0){
+        method = 4;
+    }
+
     key_size = strlen(argv[3]);
     value_size = argv[4] ? strlen(argv[4]) : 5; // if no value is given, set default "null"
     char key_buffer[key_size], value_buffer[value_size];
@@ -53,23 +68,23 @@ int main(int argc, char *argv[]){
     sockfd = open_clientfd(serv_addr, serv_service);
 
     if(send(sockfd, &user_info, sizeof(struct info_package), 0) < 0){
-	perror("sending user info");
-	exit(1);
+        perror("sending user info");
+        exit(1);
     }
 
     if(send(sockfd, key_buffer, key_size, 0) < 0){
-	perror("sending key info");
-	exit(1);
+        perror("sending key info");
+        exit(1);
     }
 
     if(send(sockfd, value_buffer, value_size, 0) < 0){
-	perror("sending value info");
-	exit(1);
+        perror("sending value info");
+        exit(1);
     }
 
     if((numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0)) == -1){
-	perror("recv");
-	exit(1);
+        perror("recv");
+        exit(1);
     }
 
     buf[numbytes] = '\0';

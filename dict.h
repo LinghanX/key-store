@@ -16,3 +16,7 @@ const char *DictSearch(Dict, const char *key);
 /* delete the most recently inserted record with the given key */
 /* if there is no such record, has no effect */
 void DictDelete(Dict, const char *key);
+
+int DictSize(Dict d);
+
+char* DictNextKey(Dict d);

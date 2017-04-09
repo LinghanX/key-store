@@ -13,15 +13,7 @@ struct node_info {
     int entries;
 };
 
-unsigned long hash(unsigned char *s){
-    unsigned long hash = 5381;
-    int c;
-
-    while( c = *s++ ){
-        hash = ((hash <<5) + hash) + c;
-    }
-    return hash;
-}
+unsigned long hash(unsigned char *s);
 /*
  * The idea of isolating open_clientfd and open_listenfd ogirinated from
  * CSAPP: 2nd edition, section 11.4
