@@ -22,10 +22,10 @@ void * get_in_addr(struct sockaddr *sa){
 }
 
 /*
- * method 1: -> GET "./client get hello"
- * method 2: -> PUT "./client put hello world"
- * method 3: -> ADD "./client add localhost:3344"
- * method 4: -> DROP "./client drop localhost:3344"
+ * method 1: -> GET "./client localhost:3344 get hello"
+ * method 2: -> PUT "./client localhost:3344 put hello world"
+ * method 3: -> ADD "./client localhost:3344 add localhost:3344"
+ * method 4: -> DROP "./client localhost:3344 drop localhost:3344"
  *
  */
 

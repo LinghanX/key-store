@@ -117,12 +117,16 @@ struct node_info find_node(struct node_info* available_nodes,
     candidate = available_nodes[0];
     for(int i = 0; i < size; i++){
         if(key_hashed_value > key_value(candidate)){
+            printf("the candidate node is: %s\n %s\n",
+            candidate.addr, candidate.service);
             return candidate;
         }
 
         candidate = available_nodes[i];
     }
 
+    printf("the candidate node is: %s\n %s\n",
+           candidate.addr, candidate.service);
     return candidate;
 }
 

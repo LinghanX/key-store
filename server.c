@@ -82,7 +82,7 @@ int main(int argc, char *argv[])
     }
 
 
-    printf("available nodes: %s\n%s\n%d", available_nodes[0].addr, available_nodes[0].service, available_nodes[0].entries);
+    printf("available nodes: %s\n%s\n%d\n", available_nodes[0].addr, available_nodes[0].service, available_nodes[0].entries);
 
     int sockfd, new_fd;
     struct sockaddr_storage their_addr;
@@ -106,107 +106,103 @@ int main(int argc, char *argv[])
         }
 
         // everytime the server received a request, create a fork to process the request
-        if(!fork()){
-            close(sockfd);
-            //receive struct msg
-            if(recv(new_fd, &incoming_package, sizeof(struct info_package), 0) < 0){
-                perror("recv error");
-                exit(1);
-            }
-            printf("successfully received method: %d\nkey_size: %d\nvalue_size: %d\n", incoming_package.method,
-                   (int)incoming_package.key_size, (int)incoming_package.value_size);
+        //receive struct msg
+        if(recv(new_fd, &incoming_package, sizeof(struct info_package), 0) < 0){
+            perror("recv error");
+            exit(1);
+        }
+        printf("successfully received method: %d\nkey_size: %d\nvalue_size: %d\n", incoming_package.method,
+               (int)incoming_package.key_size, (int)incoming_package.value_size);
 
-            char key_buffer[incoming_package.key_size], value_buffer[incoming_package.value_size];
-            char get_buffer[4096];
+        char key_buffer[incoming_package.key_size], value_buffer[incoming_package.value_size];
+        char get_buffer[4096];
 
-            //receive key
-            if(recv(new_fd, key_buffer, incoming_package.key_size, 0) < 0){
-                perror("recv error");
-                exit(1);
-            }
+        //receive key
+        if(recv(new_fd, key_buffer, incoming_package.key_size, 0) < 0){
+            perror("recv error");
+            exit(1);
+        }
 
+        sort(available_nodes, num_of_nodes);
+        unsigned long key_hashed_value = hash(key_buffer);
+        struct node_info target_node = find_node(available_nodes,
+                                                 num_of_nodes,
+                                                 key_hashed_value);
+
+        printf("target node is: %s\n%s\n", target_node.service, target_node.addr);
+        printf("checkpoint1\n");
+
+        if(incoming_package.method == ADD){
+            num_of_nodes++;
+
+            printf("the original node's addr is: %s\n", key_buffer);
+            char node_addr[256];
+            strcpy(node_addr, key_buffer);
+
+            available_nodes[num_of_nodes-1].addr = strtok(key_buffer, ":");
+            available_nodes[num_of_nodes-1].service= strtok(NULL, "");
+
+            printf("the added node's addr is: %s\n service is: %s\n",
+                   available_nodes[num_of_nodes-1].addr,
+                   available_nodes[num_of_nodes-1].service);
+            printf("the original node's addr is: %s\n", node_addr);
             sort(available_nodes, num_of_nodes);
-            unsigned long key_hashed_value = hash(key_buffer);
-            struct node_info target_node = find_node(available_nodes,
-                                                     num_of_nodes,
-                                                     key_hashed_value);
 
-            if(incoming_package.method == ADD){
-                num_of_nodes++;
-
-                available_nodes[num_of_nodes-1].addr = strtok(key_buffer, ":");
-                available_nodes[num_of_nodes-1].service= strtok(NULL, "");
-
-                printf("the added node's addr is: %s\n service is: %s\n",
-                       available_nodes[num_of_nodes-1].addr,
-                       available_nodes[num_of_nodes-1].service);
-                printf("the original node's addr is: %s\n", key_buffer);
-                sort(available_nodes, num_of_nodes);
-
-                if(num_of_nodes != 1){
-                    struct node_info post_node = find_post_node(available_nodes, num_of_nodes, key_buffer);
-                    reset_node(post_node);
-                }
+            if(num_of_nodes != 1){
+                struct node_info post_node = find_post_node(available_nodes, num_of_nodes, node_addr);
+                reset_node(post_node);
             }
+        }
 
-            if(incoming_package.method == DROP){
-                struct node_info node_to_be_removed;
-                node_to_be_removed.addr = strtok(key_buffer, ":");
-                node_to_be_removed.service = strtok(NULL, "");
+        else if(incoming_package.method == DROP){
+            struct node_info node_to_be_removed;
+            node_to_be_removed.addr = strtok(key_buffer, ":");
+            node_to_be_removed.service = strtok(NULL, "");
 
-                remove_node(available_nodes, num_of_nodes, node_to_be_removed);
-                num_of_nodes--;
-                sort(available_nodes, num_of_nodes);
+            remove_node(available_nodes, num_of_nodes, node_to_be_removed);
+            num_of_nodes--;
+            sort(available_nodes, num_of_nodes);
 
-                printf("****************************************************************\n");
-                printf("sorting completed\n");
-                printf("****************************************************************\n");
+            printf("****************************************************************\n");
+            printf("sorting completed\n");
+            printf("****************************************************************\n");
 
-                reset_node(node_to_be_removed);
-            }
+            reset_node(node_to_be_removed);
+        }
 
-            if(incoming_package.method == GET){
-                size_t entry_value =(size_t) hash(key_buffer);
-                //int target_node = entry_value % num_of_nodes;
+        else if(incoming_package.method == GET){
+            //establish node connection
+            int node_fd = open_clientfd(target_node.addr,
+                                        target_node.service);
 
-                //establish node connection
-                int node_fd = open_clientfd(target_node.addr,
-                                            target_node.service);
+            send(node_fd, &incoming_package, sizeof(struct info_package), 0);
+            send(node_fd, key_buffer, incoming_package.key_size, 0);
 
-                send(node_fd, &incoming_package, sizeof(struct info_package), 0);
-                send(node_fd, key_buffer, incoming_package.key_size, 0);
+            recv(node_fd, get_buffer, 4096, 0);
+            close(node_fd);
 
-                recv(node_fd, get_buffer, 4096, 0);
-                close(node_fd);
+            send(new_fd, get_buffer, 4096, 0);
+        }
 
-                send(new_fd, get_buffer, 4096, 0);
-                exit(0);
-            }
-
-            if (incoming_package.method == PUT){
-                if(recv(new_fd, value_buffer, incoming_package.value_size, 0) < 0){
-                    perror("recv error");
-                    exit(1);
-                }
-
-                size_t entry_value =(size_t) hash(key_buffer);
-
-                //establish node connection
-                int node_fd = open_clientfd(target_node.addr,
-                                            target_node.service);
-                send(node_fd, &incoming_package, sizeof(struct info_package), 0);
-                send(node_fd, key_buffer, incoming_package.key_size, 0);
-                send(node_fd, value_buffer, incoming_package.value_size, 0);
-
-                recv(node_fd, get_buffer, 4096, 0);
-                close(node_fd);
-                send(new_fd, get_buffer, 4096, 0);
-                exit(0);
-            } else {
-                perror("unrecognised method\n");
+        else if (incoming_package.method == PUT){
+            printf("checkpoint2\n");
+            if(recv(new_fd, value_buffer, incoming_package.value_size, 0) < 0){
+                perror("recv error");
                 exit(1);
             }
-            close(new_fd);
+            //establish node connection
+            int node_fd = open_clientfd(target_node.addr,
+                                        target_node.service);
+            send(node_fd, &incoming_package, sizeof(struct info_package), 0);
+            send(node_fd, key_buffer, incoming_package.key_size, 0);
+            send(node_fd, value_buffer, incoming_package.value_size, 0);
+
+            recv(node_fd, get_buffer, 4096, 0);
+            close(node_fd);
+            send(new_fd, get_buffer, 4096, 0);
+        } else {
+            printf("method is: %d", incoming_package.method);
+            perror("unrecognised method\n");
         }
         close(new_fd);
     }

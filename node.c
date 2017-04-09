@@ -54,7 +54,6 @@ int main(int argc, char *argv[])
 		//receive struct msg
 		if(recv(new_fd, &incoming_package, sizeof(struct info_package), 0) < 0){
 			perror("recv error");
-			continue;
 		}
 		printf("successfully received method: %d\nkey_size: %d\nvalue_size: %d\n", (int)incoming_package.method,
 			   (int)incoming_package.key_size, (int)incoming_package.value_size);
@@ -68,7 +67,6 @@ int main(int argc, char *argv[])
 			const char *ret = DictSearch(d, key_buffer);
 			if(ret == NULL){
 				send(new_fd, "no result", 10, 0);
-				continue;
 			} else {
 				printf("%s \n", ret);
 				printf("length of str is %d\n", (int)strlen(ret));
@@ -76,7 +74,6 @@ int main(int argc, char *argv[])
 					perror("return value error");
 					exit(1);
 				}
-				continue;
 			}
 
 		} else if (incoming_package.method == PUT){
@@ -94,13 +91,11 @@ int main(int argc, char *argv[])
 			pthread_mutex_unlock(&lock);
 
 			send(new_fd, "successful!", 10, 0);
-			continue;
 		} else if(incoming_package.method == DROP) {
 			pthread_mutex_lock(&lock);
 			while(DictSize(d) > 0) {
 				char* key = DictNextKey(d);
 				char* ret = DictSearch(d, key);
-
 
 				printf("key to be removed is: %s\n", key);
 
@@ -113,20 +108,20 @@ int main(int argc, char *argv[])
 				strcpy(key_buffer, key);
 				strcpy(value_buffer, ret);
 
-				sockfd = open_clientfd(serv_addr, serv_service);
+				int new_sock_fd = open_clientfd(serv_addr, serv_service);
 
                 printf("sending method: %d", request.method);
-				if(send(sockfd, &request, sizeof(struct info_package), 0) < 0){
+				if(send(new_sock_fd, &request, sizeof(struct info_package), 0) < 0){
 					perror("sending request info");
 					exit(1);
 				}
 
-				if(send(sockfd, key_buffer, request.key_size, 0) < 0){
+				if(send(new_sock_fd, key_buffer, request.key_size, 0) < 0){
 					perror("sending key info");
 					exit(1);
 				}
 
-				if(send(sockfd, value_buffer, request.value_size, 0) < 0){
+				if(send(new_sock_fd, value_buffer, request.value_size, 0) < 0){
 					perror("sending value info");
 					exit(1);
 				}
@@ -139,17 +134,13 @@ int main(int argc, char *argv[])
 //
 //				buf[numbytes] = '\0';
 //				printf("client: received '%s' \n", buf);
-
-				close(sockfd);
-
+                close(new_sock_fd);
 			}
 			pthread_mutex_unlock(&lock);
 			printf("successfully unload data\n");
-			continue;
 		} else {
 			perror("unrecognised method\n");
 			exit(1);
-			continue;
 		}
 
 		close(new_fd);
