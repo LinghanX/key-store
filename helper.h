@@ -18,6 +18,7 @@ unsigned long hash(unsigned char *s);
  * The idea of isolating open_clientfd and open_listenfd ogirinated from
  * CSAPP: 2nd edition, section 11.4
  */
+char* to_name(int method);
 
 int open_clientfd(char *hostname, char *port);
 int open_listenfd(char *port, int listenq);

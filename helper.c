@@ -6,7 +6,21 @@
 #include <netdb.h>
 #include <stdlib.h>
 #include <stdio.h>
-
+char* to_name(int method) {
+    switch(method) {
+        case 1:
+            return "GET";
+        case 2:
+            return "PUT";
+        case 3:
+            return "ADD";
+        case 4:
+            return "DROP";
+        default:
+            perror("undefined method");
+    }
+    return "";
+}
 int open_clientfd(char *hostname, char *port){
     int clientfd;
     struct addrinfo hints, *listp, *p;

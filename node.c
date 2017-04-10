@@ -19,7 +19,6 @@
 #define PUT (2)
 #define DROP (4)
 
-static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
 // initialize node with the port number of this node and the address of the server
 // % ./node [port number] localhost:[port number]
@@ -37,14 +36,14 @@ int main(int argc, char *argv[])
 	sockfd = open_listenfd(port, CONNECTION_POOL);
 	printf("node: waiting for connections...\n");
 
-	struct info_package incoming_package;
 
 	char *serv_addr, *serv_service;
     serv_addr = strtok(argv[2], ":");
 	serv_service = strtok(NULL, " ");
 
 	while(1){
-		char recvbuf[4096];
+		struct info_package incoming_package;
+
 		sin_size = sizeof(their_addr);
 		new_fd = accept(sockfd, (struct sockaddr *)&their_addr, &sin_size);
 		if(new_fd == -1){
@@ -59,6 +58,8 @@ int main(int argc, char *argv[])
 			   (int)incoming_package.key_size, (int)incoming_package.value_size);
 
 		char key_buffer[incoming_package.key_size], value_buffer[incoming_package.value_size];
+		
+		
 		if(incoming_package.method == GET){
 			if(recv(new_fd, key_buffer, incoming_package.key_size, 0) < 0){
 				perror("recv error");
@@ -86,13 +87,11 @@ int main(int argc, char *argv[])
 				exit(1);
 			}
 
-			pthread_mutex_lock(&lock);
 			DictInsert(d, key_buffer, value_buffer);
-			pthread_mutex_unlock(&lock);
 
 			send(new_fd, "successful!", 10, 0);
+		
 		} else if(incoming_package.method == DROP) {
-			pthread_mutex_lock(&lock);
 			while(DictSize(d) > 0) {
 				char* key = DictNextKey(d);
 				char* ret = DictSearch(d, key);
@@ -136,7 +135,6 @@ int main(int argc, char *argv[])
 //				printf("client: received '%s' \n", buf);
                 close(new_sock_fd);
 			}
-			pthread_mutex_unlock(&lock);
 			printf("successfully unload data\n");
 		} else {
 			perror("unrecognised method\n");

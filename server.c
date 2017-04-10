@@ -21,6 +21,16 @@
 #define DROP (4)
 #define MAX_NODE_NO (100)
 
+
+void print_node_info(struct node_info *available_nodes, int num_of_nodes) {
+    int i = 0;
+    printf("---start---\n");
+    for(i = 0; i < num_of_nodes; i++) {
+        printf("node-%d at %s\n",i, available_nodes[i].service);
+    }
+    printf("---end---\n");
+}
+
 struct circle {
     struct node_info node;
     struct circle* next;
@@ -111,43 +121,44 @@ int main(int argc, char *argv[])
             perror("recv error");
             exit(1);
         }
-        printf("successfully received method: %d\nkey_size: %d\nvalue_size: %d\n", incoming_package.method,
-               (int)incoming_package.key_size, (int)incoming_package.value_size);
 
-        char key_buffer[incoming_package.key_size], value_buffer[incoming_package.value_size];
+        char key_buffer[100];
         char get_buffer[4096];
+        char value_buffer[100];
 
         //receive key
         if(recv(new_fd, key_buffer, incoming_package.key_size, 0) < 0){
             perror("recv error");
             exit(1);
         }
-
+        if(incoming_package.value_size != 0) {
+            if(recv(new_fd, value_buffer, incoming_package.value_size, 0) < 0){
+                perror("recv error");
+                exit(1);
+            }
+        }   
         sort(available_nodes, num_of_nodes);
         unsigned long key_hashed_value = hash(key_buffer);
         struct node_info target_node = find_node(available_nodes,
                                                  num_of_nodes,
                                                  key_hashed_value);
-
-        printf("target node is: %s\n%s\n", target_node.service, target_node.addr);
-        printf("checkpoint1\n");
+        printf("SERVER: request %s %s %s; node: %s\n", 
+            to_name(incoming_package.method),
+            key_buffer, 
+            value_buffer,
+            target_node.service);
 
         if(incoming_package.method == ADD){
             num_of_nodes++;
 
-            printf("the original node's addr is: %s\n", key_buffer);
             char node_addr[256];
             strcpy(node_addr, key_buffer);
 
             available_nodes[num_of_nodes-1].addr = strtok(key_buffer, ":");
             available_nodes[num_of_nodes-1].service= strtok(NULL, "");
 
-            printf("the added node's addr is: %s\n service is: %s\n",
-                   available_nodes[num_of_nodes-1].addr,
-                   available_nodes[num_of_nodes-1].service);
-            printf("the original node's addr is: %s\n", node_addr);
             sort(available_nodes, num_of_nodes);
-
+            print_node_info(available_nodes, num_of_nodes);
             if(num_of_nodes != 1){
                 struct node_info post_node = find_post_node(available_nodes, num_of_nodes, node_addr);
                 reset_node(post_node);
@@ -172,6 +183,7 @@ int main(int argc, char *argv[])
 
         else if(incoming_package.method == GET){
             //establish node connection
+            incoming_package.value_size = 0;
             int node_fd = open_clientfd(target_node.addr,
                                         target_node.service);
 
@@ -185,11 +197,7 @@ int main(int argc, char *argv[])
         }
 
         else if (incoming_package.method == PUT){
-            printf("checkpoint2\n");
-            if(recv(new_fd, value_buffer, incoming_package.value_size, 0) < 0){
-                perror("recv error");
-                exit(1);
-            }
+
             //establish node connection
             int node_fd = open_clientfd(target_node.addr,
                                         target_node.service);
