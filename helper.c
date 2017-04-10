@@ -113,29 +113,46 @@ unsigned long key_value(struct node_info node){
 }
 
 void sort(struct node_info *nodes, int num_of_nodes){
-    for(int i = 1; i < num_of_nodes - 1; i++){
-        struct node_info key = nodes[i];
-        int j = i - 1;
-        while(j >=0 && key_value(nodes[j]) > key_value(key)){
-            nodes[j + 1] = nodes[j];
+//     for i = 1 to length(A)
+//     j ← i
+//     while j > 0 and A[j-1] > A[j]
+//         swap A[j] and A[j-1]
+//         j ← j - 1
+//     end while
+// end for
+    for(int i = 1; i < num_of_nodes; i++) {
+        int j = i;
+        while(j > 0 && key_value(nodes[j-1])>key_value(nodes[j])) {
+            struct node_info temp = nodes[j];
+            nodes[j] = nodes[j-1];
+            nodes[j-1] = temp;
             j--;
         }
-
-        nodes[j+1] = key;
     }
+
+    // for(int i = 1; i < num_of_nodes - 1; i++){
+    //     struct node_info key = nodes[i];
+    //     int j = i - 1;
+    //     while(j >=0 && key_value(nodes[j]) > key_value(key)){
+    //         nodes[j + 1] = nodes[j];
+    //         j--;
+    //     }
+
+    //     nodes[j+1] = key;
+    // }
 }
 
-struct node_info find_node(struct node_info* available_nodes,
+struct node_info *find_node(struct node_info* available_nodes,
                            int size,
                            unsigned long key_hashed_value){
-    struct node_info candidate;
-    candidate = available_nodes[0];
+    struct node_info* candidate;
+    candidate = available_nodes;
     for(int i = 0; i < size; i++){
-        if(key_hashed_value > key_value(candidate)){
+        if(key_hashed_value > key_value(*candidate)){
             return candidate;
         }
 
-        candidate = available_nodes[i];
+        candidate = available_nodes+i;
     }
     return candidate;
 }

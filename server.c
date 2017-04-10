@@ -26,7 +26,8 @@ void print_node_info(struct node_info *available_nodes, int num_of_nodes) {
     int i = 0;
     printf("---start---\n");
     for(i = 0; i < num_of_nodes; i++) {
-        printf("node-%d at %s\n",i, available_nodes[i].service);
+        printf("node-%d at %s:%s\n",
+            i, available_nodes[i].addr, available_nodes[i].service);
     }
     printf("---end---\n");
 }
@@ -79,10 +80,11 @@ void talk(struct node_info *target_node,
           char* value_buffer, 
           char* get_buffer){
 
-    printf("SERVER: send %s %s %s to node: %s\n", 
+    printf("SERVER: send %s %s %s to node: %s:%s\n", 
     to_name(outcoming_package->method),
     key_buffer, 
     value_buffer,
+    target_node->addr,
     target_node->service);
 
     int node_fd = open_clientfd(target_node->addr,
@@ -132,9 +134,9 @@ int main(int argc, char *argv[])
     sockfd = open_listenfd(PORTAL, CONNECTION_POOL);
     printf("server: waiting for connections...\n");
 
-    struct info_package incoming_package;
 
     while(1){
+
         char recvbuf[4096];
         sin_size = sizeof(their_addr);
 
@@ -144,6 +146,7 @@ int main(int argc, char *argv[])
             perror("accept");
             continue;
         }
+        struct info_package incoming_package;
 
         // everytime the server received a request, create a fork to process the request
         //receive struct msg
@@ -152,31 +155,52 @@ int main(int argc, char *argv[])
             exit(1);
         }
 
-        char key_buffer[100];
+        char* key_buffer = malloc(100);
         char get_buffer[4096];
         char value_buffer[100];
+
+        printf("***before recv key\n");
+        print_node_info(available_nodes, num_of_nodes);
+        printf("***\n");
 
         //receive key
         if(recv(new_fd, key_buffer, incoming_package.key_size, 0) < 0){
             perror("recv error");
             exit(1);
         }
+        printf("***before recv value\n");
+        print_node_info(available_nodes, num_of_nodes);
+        printf("***\n");
+
         if(incoming_package.value_size != 0) {
             if(recv(new_fd, value_buffer, incoming_package.value_size, 0) < 0){
                 perror("recv error");
                 exit(1);
             }
         }   
+        printf("***before sorting\n");
+        print_node_info(available_nodes, num_of_nodes);
+        printf("***\n");
+
         sort(available_nodes, num_of_nodes);
+        printf("***after sorting\n");
+        print_node_info(available_nodes, num_of_nodes);
+        printf("***\n");
+
         unsigned long key_hashed_value = hash(key_buffer);
-        struct node_info target_node = find_node(available_nodes,
+        struct node_info *target_node = find_node(available_nodes,
                                                  num_of_nodes,
                                                  key_hashed_value);
-        printf("SERVER: received %s %s %s; node: %s\n", 
+        printf("***after find_node\n");
+        print_node_info(available_nodes, num_of_nodes);
+        printf("***\n");
+
+        printf("SERVER: received %s %s %s; node: %s:%s\n", 
             to_name(incoming_package.method),
             key_buffer, 
             value_buffer,
-            target_node.service);
+            target_node->addr,
+            target_node->service);
         // after recieve whatever, close fd;
         //close(new_fd);
 
@@ -188,7 +212,8 @@ int main(int argc, char *argv[])
 
             available_nodes[num_of_nodes-1].addr = strtok(key_buffer, ":");
             available_nodes[num_of_nodes-1].service= strtok(NULL, "");
-            printf("SERVER new node %s hash %lu\n", node_addr, key_value(available_nodes[num_of_nodes-1]));
+            printf("SERVER new node %s hash %lu\n", 
+                node_addr, key_value(available_nodes[num_of_nodes-1]));
 
             sort(available_nodes, num_of_nodes);
             print_node_info(available_nodes, num_of_nodes);
@@ -228,7 +253,7 @@ int main(int argc, char *argv[])
 
             // recv(node_fd, get_buffer, 4096, 0);
             // close(node_fd);
-            talk(&target_node, 
+            talk(target_node, 
                  &incoming_package, 
                  key_buffer, 
                  value_buffer, 
@@ -245,7 +270,7 @@ int main(int argc, char *argv[])
             //     target_node.service);
 
             //establish node connection
-            talk(&target_node, 
+            talk(target_node, 
                  &incoming_package, 
                  key_buffer, 
                  value_buffer, 
@@ -261,12 +286,13 @@ int main(int argc, char *argv[])
             // close(node_fd);
             send(new_fd, get_buffer, 4096, 0);
             printf("SERVER: send PUT to node: %s success.\n", 
-                target_node.service);
+                target_node->service);
 
         } else {
             printf("method is: %d", incoming_package.method);
             perror("unrecognised method\n");
         }
+        free(key_buffer);
         close(new_fd);
 
     }
