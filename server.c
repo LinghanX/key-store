@@ -149,7 +149,7 @@ int main(int argc, char *argv[])
             value_buffer,
             target_node.service);
         // after recieve whatever, close fd;
-        close(new_fd);
+        //close(new_fd);
 
         if(incoming_package.method == ADD){
             num_of_nodes++;
@@ -225,5 +225,7 @@ int main(int argc, char *argv[])
             printf("method is: %d", incoming_package.method);
             perror("unrecognised method\n");
         }
+        close(new_fd);
+
     }
 }
