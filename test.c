@@ -2,11 +2,11 @@
 
 int main(int argc , char *argv[]) {
     int no_nodes = 10;
-    if(argc == 2) {
-        no_nodes = atoi(argv[1]);
-    }
+//    if(argc == 2) {
+//        no_nodes = atoi(argv[1]);
+//    }
     int i;
-    int port = 3001;
+    int port = 3000;
     for(i = 0; i < no_nodes; i++) {
         if(!fork()) {
             // new node process
