@@ -36,21 +36,11 @@ struct circle {
     struct circle* next;
 };
 
-void reset_node(struct node_info target_node){
-    struct info_package reset_info;
-    reset_info.method = DROP;
-    reset_info.key_size = 0;
-    reset_info.value_size = 0;
-
-    int node_fd = open_clientfd(target_node.addr,
-                                target_node.service);
-    send(node_fd, &reset_info, sizeof(struct info_package), 0);
-    close(node_fd);
-}
 
 struct node_info find_post_node(struct node_info* available_nodes,
                                 int num_of_nodes,
                                 char* address){
+    printf("find_post_node: find node after %s\n", address);
     struct node_info node;
     node.addr = strtok(address, ":");
     node.service= strtok(NULL, "");
@@ -62,8 +52,11 @@ struct node_info find_post_node(struct node_info* available_nodes,
             break;
         }
     } 
-    if( i+1 == num_of_nodes )
+    printf("find_post_node: found %d\n", i+1);
+
+    if(i+1 == num_of_nodes) {
         return available_nodes[0];
+    }
     return available_nodes[i+1];
 
 }
@@ -105,6 +98,19 @@ void talk(struct node_info *target_node,
     close(node_fd);
 
 }
+
+void reset_node(struct node_info target_node){
+    struct info_package reset_info;
+    reset_info.method = DROP;
+    reset_info.key_size = 0;
+    reset_info.value_size = 0;
+
+    int node_fd = open_clientfd(target_node.addr,
+                                target_node.service);
+    send(node_fd, &reset_info, sizeof(struct info_package), 0);
+    close(node_fd);
+}
+
 // server should be given:  number of nodes, address of data nodes
 int main(int argc, char *argv[])
 {
