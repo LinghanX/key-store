@@ -20,7 +20,7 @@
 #define ADD (3)
 #define DROP (4)
 #define MAX_NODE_NO (100)
-
+#define CLIENT_PORT (4096)
 
 void print_node_info(struct node_info *available_nodes, int num_of_nodes) {
     int i = 0;
@@ -80,7 +80,31 @@ void remove_node(struct node_info *nodes, int num, struct node_info node) {
         }
     }
 }
+//  
+void talk(struct node_info *target_node, 
+          struct info_package *outcoming_package, 
+          char* key_buffer, 
+          char* value_buffer, 
+          char* get_buffer){
 
+    printf("SERVER: send %s %s %s to node: %s\n", 
+    to_name(outcoming_package->method),
+    key_buffer, 
+    value_buffer,
+    target_node->service);
+
+    int node_fd = open_clientfd(target_node->addr,
+                                 target_node->service);
+
+    send(node_fd, outcoming_package, sizeof(struct info_package), 0);
+    send(node_fd, key_buffer, outcoming_package->key_size, 0);
+    if(outcoming_package->value_size > 0)
+    send(node_fd, value_buffer, outcoming_package->value_size, 0);
+
+    recv(node_fd, get_buffer, 4096, 0);
+    close(node_fd);
+
+}
 // server should be given:  number of nodes, address of data nodes
 int main(int argc, char *argv[])
 {
@@ -183,40 +207,52 @@ int main(int argc, char *argv[])
         }
 
         else if(incoming_package.method == GET){
-            printf("SERVER: send GET %s to node: %s\n", 
-                key_buffer, 
-                //value_buffer,
-                target_node.service);
+            // printf("SERVER: send GET %s to node: %s\n", 
+            //     key_buffer, 
+            //     //value_buffer,
+            //     target_node.service);
 
             //establish node connection
             incoming_package.value_size = 0;
-            int node_fd = open_clientfd(target_node.addr,
-                                        target_node.service);
+            // int node_fd = open_clientfd(target_node.addr,
+            //                             target_node.service);
 
-            send(node_fd, &incoming_package, sizeof(struct info_package), 0);
-            send(node_fd, key_buffer, incoming_package.key_size, 0);
+            // send(node_fd, &incoming_package, sizeof(struct info_package), 0);
+            // send(node_fd, key_buffer, incoming_package.key_size, 0);
 
-            recv(node_fd, get_buffer, 4096, 0);
-            close(node_fd);
+            // recv(node_fd, get_buffer, 4096, 0);
+            // close(node_fd);
+            talk(&target_node, 
+                 &incoming_package, 
+                 key_buffer, 
+                 value_buffer, 
+                 get_buffer);
+
 
             send(new_fd, get_buffer, 4096, 0);
         }
 
         else if (incoming_package.method == PUT){
-            printf("SERVER: send PUT %s %s to node: %s\n", 
-                key_buffer, 
-                value_buffer,
-                target_node.service);
+            // printf("SERVER: send PUT %s %s to node: %s\n", 
+            //     key_buffer, 
+            //     value_buffer,
+            //     target_node.service);
 
             //establish node connection
-            int node_fd = open_clientfd(target_node.addr,
-                                        target_node.service);
-            send(node_fd, &incoming_package, sizeof(struct info_package), 0);
-            send(node_fd, key_buffer, incoming_package.key_size, 0);
-            send(node_fd, value_buffer, incoming_package.value_size, 0);
+            talk(&target_node, 
+                 &incoming_package, 
+                 key_buffer, 
+                 value_buffer, 
+                 get_buffer);
 
-            recv(node_fd, get_buffer, 4096, 0);
-            close(node_fd);
+            // int node_fd = open_clientfd(target_node.addr,
+            //                             target_node.service);
+            // send(node_fd, &incoming_package, sizeof(struct info_package), 0);
+            // send(node_fd, key_buffer, incoming_package.key_size, 0);
+            // send(node_fd, value_buffer, incoming_package.value_size, 0);
+
+            // recv(node_fd, get_buffer, 4096, 0);
+            // close(node_fd);
             send(new_fd, get_buffer, 4096, 0);
             printf("SERVER: send PUT to node: %s success.\n", 
                 target_node.service);

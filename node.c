@@ -87,8 +87,6 @@ int main(int argc, char *argv[])
 			if(ret == NULL){
 				send(new_fd, "no result", 10, 0);
 			} else {
-				printf("%s \n", ret);
-				printf("length of str is %d\n", (int)strlen(ret));
 				if(send(new_fd, ret, strlen(ret) + 1, 0) < 0){
 					perror("return value error");
 					exit(1);
