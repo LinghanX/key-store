@@ -45,6 +45,7 @@ void reset_node(struct node_info target_node){
     int node_fd = open_clientfd(target_node.addr,
                                 target_node.service);
     send(node_fd, &reset_info, sizeof(struct info_package), 0);
+    close(node_fd);
 }
 
 struct node_info find_post_node(struct node_info* available_nodes,
@@ -58,11 +59,13 @@ struct node_info find_post_node(struct node_info* available_nodes,
     int i;
     for(i = 0; i < num_of_nodes; i++){
         if(key_value(available_nodes[i]) == node_hash_value){
-            if( i+1 == num_of_nodes )
-                return available_nodes[0];
-            return available_nodes[i+1];
+            break;
         }
-    }
+    } 
+    if( i+1 == num_of_nodes )
+        return available_nodes[0];
+    return available_nodes[i+1];
+
 }
 void remove_node(struct node_info *nodes, int num, struct node_info node) {
     int i = 0;
@@ -145,6 +148,8 @@ int main(int argc, char *argv[])
             key_buffer, 
             value_buffer,
             target_node.service);
+        // after recieve whatever, close fd;
+        close(new_fd);
 
         if(incoming_package.method == ADD){
             num_of_nodes++;
@@ -220,6 +225,5 @@ int main(int argc, char *argv[])
             printf("method is: %d", incoming_package.method);
             perror("unrecognised method\n");
         }
-        close(new_fd);
     }
 }

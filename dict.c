@@ -35,6 +35,7 @@ char* DictNextKey(Dict d) {
             }
         }
     }
+    return "error";
 }
 /* dictionary initialization code used in both DictCreate and grow */
 Dict

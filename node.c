@@ -110,7 +110,7 @@ int main(int argc, char *argv[])
 
 			while(DictSize(d) > 0) {
 				char* key = DictNextKey(d);
-				char* ret = DictSearch(d, key);
+				const char* ret = DictSearch(d, key);
 
 				// send request to put the key-value pair
 				struct info_package request;
