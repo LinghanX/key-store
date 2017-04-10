@@ -9,7 +9,8 @@ struct info_package {
 };
 
 struct node_info {
-    char *addr, *service;
+    char addr[256];
+    char service[256];
     int entries;
 };
 
