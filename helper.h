@@ -3,6 +3,11 @@
 
 #include <stdlib.h>
 
+#define GET (1)
+#define PUT (2)
+#define ADD (3)
+#define DROP (4)
+
 struct info_package {
     int method;
     size_t key_size, value_size;
@@ -22,6 +27,19 @@ unsigned long key_value(struct node_info node);
  */
 char* to_name(int method);
 
+void print_node_info(struct node_info *available_nodes, int num_of_nodes);
+struct node_info find_post_node(struct node_info *available_nodes,
+                                int num_of_nodes,
+                                char* address);
+void remove_node(struct node_info *nodes,
+                 int num_of_nodes,
+                 struct node_info *target_node);
+void talk(struct node_info *target_node,
+          struct info_package *outcoming_package,
+          char* key_buffer,
+          char* value_buffer,
+          char* get_buffer);
+void reset_node(struct node_info target_node);
 int open_clientfd(char *hostname, char *port);
 int open_listenfd(char *port, int listenq);
 

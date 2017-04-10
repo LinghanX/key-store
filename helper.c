@@ -6,6 +6,96 @@
 #include <netdb.h>
 #include <stdlib.h>
 #include <stdio.h>
+
+void print_node_info(struct node_info *available_nodes, int num_of_nodes) {
+    int i = 0;
+    printf("---start---\n");
+    for(i = 0; i < num_of_nodes; i++) {
+        printf("node-%d at %s:%s\n",
+               i, available_nodes[i].addr, available_nodes[i].service);
+    }
+    printf("---end---\n");
+}
+
+struct circle {
+    struct node_info node;
+    struct circle* next;
+};
+
+
+struct node_info find_post_node(struct node_info* available_nodes,
+                                int num_of_nodes,
+                                char* address){
+    struct node_info node;
+    strcpy(node.addr,strtok(address, ":"));
+    strcpy(node.service, strtok(NULL, ""));
+    unsigned long node_hash_value = key_value(node);
+
+    int i;
+    for(i = 0; i < num_of_nodes; i++){
+        if(key_value(available_nodes[i]) == node_hash_value){
+            break;
+
+        }
+    }
+
+    if(i+1 == num_of_nodes) {
+        return available_nodes[0];
+    }
+    return available_nodes[i+1];
+
+}
+void remove_node(struct node_info *nodes, int num, struct node_info *node) {
+    int i = 0;
+    for(i = 0; i < num; i ++) {
+        if(key_value(nodes[i]) == key_value(*node)) {
+            // found node to be removed
+            if(i == num - 1) return;
+            else {
+                nodes[i] = nodes[num - 1];
+                return;
+            }
+        }
+    }
+}
+//
+void talk(struct node_info *target_node,
+          struct info_package *outcoming_package,
+          char* key_buffer,
+          char* value_buffer,
+          char* get_buffer){
+
+    printf("SERVER: send %s %s %s to node: %s:%s\n",
+           to_name(outcoming_package->method),
+           key_buffer,
+           value_buffer,
+           target_node->addr,
+           target_node->service);
+
+    int node_fd = open_clientfd(target_node->addr,
+                                target_node->service);
+
+    send(node_fd, outcoming_package, sizeof(struct info_package), 0);
+    send(node_fd, key_buffer, outcoming_package->key_size, 0);
+    if(outcoming_package->value_size > 0)
+        send(node_fd, value_buffer, outcoming_package->value_size, 0);
+
+    recv(node_fd, get_buffer, 4096, 0);
+    close(node_fd);
+}
+
+void reset_node(struct node_info target_node){
+    struct info_package reset_info;
+    reset_info.method = DROP;
+    reset_info.key_size = 0;
+    reset_info.value_size = 0;
+
+    int node_fd = open_clientfd(target_node.addr,
+                                target_node.service);
+    send(node_fd, &reset_info, sizeof(struct info_package), 0);
+    close(node_fd);
+}
+
 char* to_name(int method) {
     switch(method) {
         case 1:
