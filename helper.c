@@ -53,22 +53,14 @@ int open_clientfd(char *hostname, char *port){
 	return clientfd;
 }
 
-unsigned long hash(char *input){
-    // unsigned long hash = 5381;
-    // int c;
+unsigned long hash(char *s){
+    unsigned long hash = 5381;
+    int c;
 
-    // while( c = *s++ ){
-    //     hash = ((hash <<5) + hash) + c;
-    // }
-    // return hash;
-    const int ret_size = 32;
-    size_t ret = 0x0;
-    const int per_char = 7;
-    while (*input) { 
-        ret ^= *input++;
-        ret = (ret << per_char) | (ret >> (ret_size - per_char));
-   }
-   return ret;
+    while( (c = *s++) ){
+        hash = ((hash <<5) + hash) + c;
+    }
+    return hash;
 
 }
 

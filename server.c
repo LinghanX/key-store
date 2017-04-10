@@ -40,7 +40,6 @@ struct circle {
 struct node_info find_post_node(struct node_info* available_nodes,
                                 int num_of_nodes,
                                 char* address){
-    printf("find_post_node: find node after %s\n", address);
     struct node_info node;
     node.addr = strtok(address, ":");
     node.service= strtok(NULL, "");
@@ -50,9 +49,9 @@ struct node_info find_post_node(struct node_info* available_nodes,
     for(i = 0; i < num_of_nodes; i++){
         if(key_value(available_nodes[i]) == node_hash_value){
             break;
+
         }
     } 
-    printf("find_post_node: found %d\n", i+1);
 
     if(i+1 == num_of_nodes) {
         return available_nodes[0];
@@ -189,6 +188,7 @@ int main(int argc, char *argv[])
 
             available_nodes[num_of_nodes-1].addr = strtok(key_buffer, ":");
             available_nodes[num_of_nodes-1].service= strtok(NULL, "");
+            printf("SERVER new node %s hash %lu\n", node_addr, key_value(available_nodes[num_of_nodes-1]));
 
             sort(available_nodes, num_of_nodes);
             print_node_info(available_nodes, num_of_nodes);
