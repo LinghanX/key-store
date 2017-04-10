@@ -34,8 +34,7 @@ int main(int argc, char *argv[])
 	socklen_t sin_size;
 
 	sockfd = open_listenfd(port, CONNECTION_POOL);
-	printf("node: waiting for connections...\n");
-
+	printf("NODE-%s listening\n", port);
 
 	char *serv_addr, *serv_service;
     serv_addr = strtok(argv[2], ":");
@@ -43,6 +42,9 @@ int main(int argc, char *argv[])
 
 	while(1){
 		struct info_package incoming_package;
+		incoming_package.key_size = 0;
+		incoming_package.value_size = 0;
+		incoming_package.method = -1;
 
 		sin_size = sizeof(their_addr);
 		new_fd = accept(sockfd, (struct sockaddr *)&their_addr, &sin_size);
@@ -54,18 +56,34 @@ int main(int argc, char *argv[])
 		if(recv(new_fd, &incoming_package, sizeof(struct info_package), 0) < 0){
 			perror("recv error");
 		}
-		printf("successfully received method: %d\nkey_size: %d\nvalue_size: %d\n", (int)incoming_package.method,
-			   (int)incoming_package.key_size, (int)incoming_package.value_size);
+		char key_buffer[incoming_package.key_size];
+		char value_buffer[incoming_package.value_size];
 
-		char key_buffer[incoming_package.key_size], value_buffer[incoming_package.value_size];
-		
-		
-		if(incoming_package.method == GET){
+		if(incoming_package.key_size > 0) {
 			if(recv(new_fd, key_buffer, incoming_package.key_size, 0) < 0){
 				perror("recv error");
 				exit(1);
 			}
+		}
+		if(incoming_package.value_size > 0) {
+			if(recv(new_fd, value_buffer, incoming_package.value_size, 0) < 0){
+				perror("recv error");
+				exit(1);
+			}
+		}
+		printf("NODE-%s receive: %s %s %s\n",
+			port,
+			to_name(incoming_package.method),
+			key_buffer,
+			value_buffer);
+		
+		
+		if(incoming_package.method == GET){
 			const char *ret = DictSearch(d, key_buffer);
+			printf("NODE-%s send GET result: %s\n",
+				port,
+				ret);
+
 			if(ret == NULL){
 				send(new_fd, "no result", 10, 0);
 			} else {
@@ -78,25 +96,21 @@ int main(int argc, char *argv[])
 			}
 
 		} else if (incoming_package.method == PUT){
-			if(recv(new_fd, key_buffer, incoming_package.key_size, 0) < 0){
-				perror("recv error");
-				exit(1);
-			}
-			if(recv(new_fd, value_buffer, incoming_package.value_size, 0) < 0){
-				perror("recv error");
-				exit(1);
-			}
+
+			printf("NODE-%s send PUT result: %s\n",
+				port,
+				"successful!");
 
 			DictInsert(d, key_buffer, value_buffer);
 
 			send(new_fd, "successful!", 10, 0);
 		
 		} else if(incoming_package.method == DROP) {
+			printf("NODE-%s: try to relocate %d kv pairs\n", port, DictSize(d));
+
 			while(DictSize(d) > 0) {
 				char* key = DictNextKey(d);
 				char* ret = DictSearch(d, key);
-
-				printf("key to be removed is: %s\n", key);
 
 				// send request to put the key-value pair
 				struct info_package request;
@@ -108,8 +122,12 @@ int main(int argc, char *argv[])
 				strcpy(value_buffer, ret);
 
 				int new_sock_fd = open_clientfd(serv_addr, serv_service);
+				
+				printf("NODE-%s send PUT request: %s %s\n",
+					port,
+					key_buffer,
+					value_buffer);
 
-                printf("sending method: %d", request.method);
 				if(send(new_sock_fd, &request, sizeof(struct info_package), 0) < 0){
 					perror("sending request info");
 					exit(1);
@@ -124,18 +142,10 @@ int main(int argc, char *argv[])
 					perror("sending value info");
 					exit(1);
 				}
-				printf("succesfully send put request\n");
 				DictDelete(d, key);
-//				if((numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0)) == -1){
-//					perror("recv");
-//					exit(1);
-//				}
-//
-//				buf[numbytes] = '\0';
-//				printf("client: received '%s' \n", buf);
                 close(new_sock_fd);
 			}
-			printf("successfully unload data\n");
+			printf("NODE-%s: finish relocate.\n", port);
 		} else {
 			perror("unrecognised method\n");
 			exit(1);

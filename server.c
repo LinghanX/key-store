@@ -39,8 +39,8 @@ struct circle {
 void reset_node(struct node_info target_node){
     struct info_package reset_info;
     reset_info.method = DROP;
-    reset_info.key_size = 8;
-    reset_info.value_size = 8;
+    reset_info.key_size = 0;
+    reset_info.value_size = 0;
 
     int node_fd = open_clientfd(target_node.addr,
                                 target_node.service);
@@ -92,8 +92,6 @@ int main(int argc, char *argv[])
     }
 
 
-    printf("available nodes: %s\n%s\n%d\n", available_nodes[0].addr, available_nodes[0].service, available_nodes[0].entries);
-
     int sockfd, new_fd;
     struct sockaddr_storage their_addr;
     socklen_t sin_size;
@@ -142,7 +140,7 @@ int main(int argc, char *argv[])
         struct node_info target_node = find_node(available_nodes,
                                                  num_of_nodes,
                                                  key_hashed_value);
-        printf("SERVER: request %s %s %s; node: %s\n", 
+        printf("SERVER: received %s %s %s; node: %s\n", 
             to_name(incoming_package.method),
             key_buffer, 
             value_buffer,
@@ -174,14 +172,17 @@ int main(int argc, char *argv[])
             num_of_nodes--;
             sort(available_nodes, num_of_nodes);
 
-            printf("****************************************************************\n");
             printf("sorting completed\n");
-            printf("****************************************************************\n");
 
             reset_node(node_to_be_removed);
         }
 
         else if(incoming_package.method == GET){
+            printf("SERVER: send GET %s to node: %s\n", 
+                key_buffer, 
+                //value_buffer,
+                target_node.service);
+
             //establish node connection
             incoming_package.value_size = 0;
             int node_fd = open_clientfd(target_node.addr,
@@ -197,6 +198,10 @@ int main(int argc, char *argv[])
         }
 
         else if (incoming_package.method == PUT){
+            printf("SERVER: send PUT %s %s to node: %s\n", 
+                key_buffer, 
+                value_buffer,
+                target_node.service);
 
             //establish node connection
             int node_fd = open_clientfd(target_node.addr,
@@ -208,6 +213,9 @@ int main(int argc, char *argv[])
             recv(node_fd, get_buffer, 4096, 0);
             close(node_fd);
             send(new_fd, get_buffer, 4096, 0);
+            printf("SERVER: send PUT to node: %s success.\n", 
+                target_node.service);
+
         } else {
             printf("method is: %d", incoming_package.method);
             perror("unrecognised method\n");
