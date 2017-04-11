@@ -88,7 +88,23 @@ int main(int argc, char *argv[]){
     }
 
     buf[numbytes] = '\0';
-    printf("client: received '%s' \n", buf);
+
+    switch(method) {
+        case 1: // GET
+            printf("CLIENT: GET key=%s, value=%s \n",key_buffer, buf);
+            break;
+        case 2: // PUT
+            printf("CLIENT: PUT key=%s, value=%s \n",key_buffer, value_buffer);
+            break;
+        case 3: // ADD
+            printf("CLIENT: tell server to ADD a node\n");
+            break;
+        case 4: // DROP
+            printf("CLIENT: tell server to drop a node\n");
+            break;
+        default:
+            printf("client error.\n");
+    }
 
     close(sockfd);
     return 0;

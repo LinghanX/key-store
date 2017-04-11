@@ -1,17 +1,17 @@
-./node 3001 localhost:3344 &
-./node 3002 localhost:3344 &
-./node 3003 localhost:3344 &
-./node 3004 localhost:3344 &
-./node 3005 localhost:3344 &
-./node 3006 localhost:3344 &
-./node 3007 localhost:3344 &
-./node 3008 localhost:3344 &
-./node 3009 localhost:3344 &
-./node 3010 localhost:3344 &
+./node 3001 localhost:3344  >/dev/null&
+./node 3002 localhost:3344  >/dev/null&
+./node 3003 localhost:3344  >/dev/null&
+./node 3004 localhost:3344  >/dev/null&
+./node 3005 localhost:3344  >/dev/null&
+./node 3006 localhost:3344  >/dev/null&
+./node 3007 localhost:3344  >/dev/null&
+./node 3008 localhost:3344  >/dev/null&
+./node 3009 localhost:3344  >/dev/null&
+./node 3010 localhost:3344  >/dev/null&
 
-sleep 2
+sleep 1
 
-./server 5 localhost:3001 localhost:3002 localhost:3003 localhost:3004 localhost:3005&
+./server 5 localhost:3001 localhost:3002 localhost:3003 localhost:3004 localhost:3005  >/dev/null &
 ./client localhost:3344 put beijing china
 ./client localhost:3344 put paris france
 ./client localhost:3344 put dehli india
@@ -54,5 +54,6 @@ sleep 1
 ./client localhost:3344 get paris
 ./client localhost:3344 get randomDude
 
-sleep 5
-pkill -P $$
+echo "closing .."
+sleep 1
+pkill -P $$ 
