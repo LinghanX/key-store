@@ -4,6 +4,7 @@
 #include <errno.h>
 #include <string.h>
 #include <sys/types.h>
+#include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
 #include <arpa/inet.h>
@@ -21,138 +22,215 @@
 // server should be given:  number of nodes, address of data nodes
 int main(int argc, char *argv[])
 {
-    int num_of_nodes = atoi(argv[1]);
-    struct node_info available_nodes[MAX_NODE_NO];
+  int num_of_nodes = atoi(argv[1]);
+  struct node_info available_nodes[MAX_NODE_NO];
 
-    // initialize nodes info
-    for(int i = 0; i < num_of_nodes; i++){
-        strcpy(available_nodes[i].addr,strtok(argv[i + 2], ":"));
-        strcpy(available_nodes[i].service,strtok(NULL, " "));
-        available_nodes[i].entries = 0;
+  // initialize nodes info
+  for(int i = 0; i < num_of_nodes; i++){
+    strcpy(available_nodes[i].addr,strtok(argv[i + 2], ":"));
+    strcpy(available_nodes[i].service,strtok(NULL, " "));
+    available_nodes[i].entries = 0;
+  }
+
+  int sockfd, new_fd;
+  struct sockaddr_storage their_addr;
+  socklen_t sin_size;
+  struct sigaction sa;
+
+  sockfd = open_listenfd(PORTAL, CONNECTION_POOL);
+  printf("server: waiting for connections...\n");
+
+  while(1){
+    char* recvbuf = malloc(4096);
+    char* key_buffer = malloc(256);
+    char* get_buffer = malloc(256);
+    char* value_buffer = malloc(256);
+    struct info_package *incoming_package = malloc(sizeof(struct info_package));
+
+    sin_size = sizeof(their_addr);
+    new_fd = accept(sockfd, (struct sockaddr *)&their_addr, &sin_size);
+
+    if(new_fd == -1){
+      perror("accept");
+      continue;
     }
 
-    int sockfd, new_fd;
-    struct sockaddr_storage their_addr;
-    socklen_t sin_size;
-    struct sigaction sa;
+    if(recv(new_fd, incoming_package, sizeof(struct info_package), 0) < 0){
+      perror("recv error");
+      exit(1);
+    }
 
-    sockfd = open_listenfd(PORTAL, CONNECTION_POOL);
-    printf("server: waiting for connections...\n");
+    //receive key
+    if(recv(new_fd, key_buffer, incoming_package->key_size, 0) < 0){
+      perror("recv error");
+      exit(1);
+    }
 
-    while(1){
-        char* recvbuf = malloc(4096);
-        char* key_buffer = malloc(256);
-        char* get_buffer = malloc(256);
-        char* value_buffer = malloc(256);
-        struct info_package *incoming_package = malloc(sizeof(struct info_package));
+    if(incoming_package->value_size != 0) {
+      if(recv(new_fd, value_buffer, incoming_package->value_size, 0) < 0){
+        perror("recv error");
+        exit(1);
+      }
+    }
 
-        sin_size = sizeof(their_addr);
-        new_fd = accept(sockfd, (struct sockaddr *)&their_addr, &sin_size);
+    sort(available_nodes, num_of_nodes);
 
-        if(new_fd == -1){
-            perror("accept");
-            continue;
+    unsigned long key_hashed_value = hash(key_buffer);
+    struct node_info *target_node = find_node(available_nodes,
+        num_of_nodes,
+        key_hashed_value);
+
+    printf("SERVER: received %s %s %s; node: %s:%s\n",
+        to_name(incoming_package->method),
+        key_buffer,
+        value_buffer,
+        target_node->addr,
+        target_node->service);
+
+    if(incoming_package->method == ADD){
+      num_of_nodes++;
+
+      char node_addr[256];
+      strcpy(node_addr, key_buffer);
+      strcpy(available_nodes[num_of_nodes-1].addr,strtok(key_buffer, ":"));
+      strcpy(available_nodes[num_of_nodes-1].service, strtok(NULL, ""));
+
+      printf("SERVER new node %s hash %lu\n",
+          node_addr, key_value(available_nodes[num_of_nodes-1]));
+
+      sort(available_nodes, num_of_nodes);
+      print_node_info(available_nodes, num_of_nodes);
+      if(num_of_nodes != 1){
+        struct node_info post_node = find_post_node(available_nodes, num_of_nodes, node_addr);
+        reset_node(post_node);
+      }
+    }
+
+    else if(incoming_package->method == DROP){
+      struct node_info *node_to_be_removed = malloc(sizeof(struct node_info));
+      strcpy(node_to_be_removed->addr, strtok(key_buffer, ":"));
+      strcpy(node_to_be_removed->service, strtok(NULL, ""));
+
+      remove_node(available_nodes, num_of_nodes, node_to_be_removed);
+      num_of_nodes--;
+      sort(available_nodes, num_of_nodes);
+
+      printf("sorting completed\n");
+
+      reset_node(*node_to_be_removed);
+      free(node_to_be_removed);
+    }
+
+    else if(incoming_package->method == GET){
+      //establish node connection
+      incoming_package->value_size = 0;
+      talk(target_node, incoming_package,
+          key_buffer, value_buffer, get_buffer);
+
+      if(strcmp(get_buffer, "") == 0 && num_of_nodes > 1){
+
+        struct node_info backup_node;
+        char addr[256];
+        strcpy(addr, target_node->addr);
+        strcat(addr, ":");
+        strcat(addr, target_node->service);
+        backup_node = find_post_node(available_nodes, num_of_nodes,
+            addr);
+
+        printf("The node has failed.\n");
+        printf("*********Before stablize: \n");
+        print_available_nodes(available_nodes, num_of_nodes);
+        stablize(target_node, available_nodes, num_of_nodes);
+        num_of_nodes--;
+        printf("*********After stablize: \n");
+        print_available_nodes(available_nodes, num_of_nodes);
+
+        printf("The backup node info is %s\n%s\n",
+            backup_node.addr, backup_node.service);
+
+        printf("Encounter node failure, reset successful. \n");
+          strcpy(get_buffer, "Please try again");
+      } else if(strcmp(get_buffer, "") == 0 && num_of_nodes == 1){
+        printf("All nodes has failed. System abort\n");
+        exit(1);
+      }
+      printf("SERVER: send GET to node: %s success.\n",
+          target_node->service);
+
+      if(send(new_fd, get_buffer, 4096, 0) <= 0){
+        printf("send GET failed");
+      };
+    }
+
+    else if (incoming_package->method == PUT){
+      char addr[256];
+      strcpy(addr, target_node -> addr);
+      strcat(addr, ":");
+      strcat(addr, target_node -> service);
+      printf("the target address is %s\n", addr);
+      struct node_info *next_node = (struct node_info *)malloc(sizeof(struct node_info));
+
+      for(int i = 0; i < 2; i++){
+        if(i == 1){
+          *next_node = find_post_node(available_nodes, num_of_nodes, addr);
+          target_node = next_node;
+          printf("The duplicate info is stored in node %s : %s \n",
+              next_node -> addr,
+              next_node -> service);
+        }
+        //establish node connection
+        talk(target_node, incoming_package,
+            key_buffer, value_buffer, get_buffer);
+
+        if(strcmp(get_buffer, "") == 0 && num_of_nodes > 1){
+          struct node_info backup_node;
+          char addr[256];
+          strcpy(addr, target_node->addr);
+          strcat(addr, ":");
+          strcat(addr, target_node->service);
+
+          backup_node = find_post_node(available_nodes, num_of_nodes,
+              addr);
+          printf("The node has failed.\n");
+
+          stablize(target_node, available_nodes, num_of_nodes);
+          num_of_nodes--;
+
+          printf("Encounter node failure, reset successful.\n");
+          strcpy(get_buffer, "Please try again");
+        } else if(strcmp(get_buffer, "") == 0 && num_of_nodes == 1){
+          printf("All nodes has failed. System abort\n");
+          exit(1);
         }
 
-        if(recv(new_fd, incoming_package, sizeof(struct info_package), 0) < 0){
-            perror("recv error");
-            exit(1);
-        }
-
-        //receive key
-        if(recv(new_fd, key_buffer, incoming_package->key_size, 0) < 0){
-            perror("recv error");
-            exit(1);
-        }
-
-        if(incoming_package->value_size != 0) {
-            if(recv(new_fd, value_buffer, incoming_package->value_size, 0) < 0){
-                perror("recv error");
-                exit(1);
-            }
-        }   
-
-        sort(available_nodes, num_of_nodes);
-
-        unsigned long key_hashed_value = hash(key_buffer);
-        struct node_info *target_node = find_node(available_nodes,
-                                                 num_of_nodes,
-                                                 key_hashed_value);
-
-        printf("SERVER: received %s %s %s; node: %s:%s\n", 
-            to_name(incoming_package->method),
-            key_buffer, 
-            value_buffer,
-            target_node->addr,
+        printf("SERVER: send PUT to node: %s success.\n",
             target_node->service);
 
-        if(incoming_package->method == ADD){
-            num_of_nodes++;
+        printf("The get_buffer is:%s\n",
+            get_buffer);
 
-            char node_addr[256];
-            strcpy(node_addr, key_buffer);
-            strcpy(available_nodes[num_of_nodes-1].addr,strtok(key_buffer, ":"));
-            strcpy(available_nodes[num_of_nodes-1].service, strtok(NULL, ""));
-
-            printf("SERVER new node %s hash %lu\n", 
-                node_addr, key_value(available_nodes[num_of_nodes-1]));
-
-            sort(available_nodes, num_of_nodes);
-            print_node_info(available_nodes, num_of_nodes);
-            if(num_of_nodes != 1){
-                struct node_info post_node = find_post_node(available_nodes, num_of_nodes, node_addr);
-                reset_node(post_node);
-            }
+        //so_nosigpipe is not portable
+        if(send(new_fd, get_buffer, 4096, 0) <= 0){
+          printf("send PUT failure");
+          if(errno==EPIPE){
+            puts("recover from failure fd\n");
+            continue;
+          }
         }
-
-        else if(incoming_package->method == DROP){
-            struct node_info *node_to_be_removed = malloc(sizeof(struct node_info));
-            strcpy(node_to_be_removed->addr, strtok(key_buffer, ":"));
-            strcpy(node_to_be_removed->service, strtok(NULL, ""));
-
-            remove_node(available_nodes, num_of_nodes, node_to_be_removed);
-            num_of_nodes--;
-            sort(available_nodes, num_of_nodes);
-
-            printf("sorting completed\n");
-
-            reset_node(*node_to_be_removed);
-            free(node_to_be_removed);
-        }
-
-        else if(incoming_package->method == GET){
-            //establish node connection
-            incoming_package->value_size = 0;
-            talk(target_node,
-                 incoming_package, 
-                 key_buffer, 
-                 value_buffer, 
-                 get_buffer);
-
-            send(new_fd, get_buffer, 4096, 0);
-        }
-
-        else if (incoming_package->method == PUT){
-            //establish node connection
-            talk(target_node, 
-                 incoming_package, 
-                 key_buffer, 
-                 value_buffer, 
-                 get_buffer);
-
-            send(new_fd, get_buffer, 4096, 0);
-            printf("SERVER: send PUT to node: %s success.\n", 
-                target_node->service);
-
-        } else {
-            printf("method is: %d", incoming_package->method);
-            perror("unrecognised method\n");
-        }
-        free(key_buffer);
-        free(get_buffer);
-        free(value_buffer);
-        free(incoming_package);
-        free(recvbuf);
-        close(new_fd);
+        printf("checkpoint3\n");
+      }
+      free(next_node);
+    } else {
+      printf("method is: %d", incoming_package->method);
+      perror("unrecognised method\n");
     }
+    printf("checkpoint2\n");
+    free(key_buffer);
+    free(get_buffer);
+    free(value_buffer);
+    free(incoming_package);
+    free(recvbuf);
+    close(new_fd);
+    printf("checkpoint1\n");
+  }
 }

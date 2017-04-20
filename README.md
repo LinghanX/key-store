@@ -55,4 +55,14 @@ provided instead of key-value pair in the case of `add` and `drop`.
 4. cs.yale.edu for the handy hashing method
 
 ## to do
-Enhance data stability/security
+Stability and failure recovery
+
+In order to maintain data security in the case that some of the nodes fail,
+a redundancy in `put` method is implemented. 
+
+More specifically, each time a client `put` a key/value pair, the server will
+distribute the key/value pair to a `target node` as well as the successer node.
+
+In the case that the `target node` fails, a `stablize()` procedure is called
+and the server will re-arrange the `available nodes` ring, rechieve all the 
+key/value stores in the successer node and re-distribute them. 
