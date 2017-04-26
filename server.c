@@ -17,6 +17,8 @@
 #define CONNECTION_POOL (10)
 #define MAX_NODE_NO (100)
 #define CLIENT_PORT (4096)
+#define KEY_VALUE_BUFFER_SIZE (256)
+#define BIG_BUFFER_SIZE (4096)
 
 // server should be given:  number of nodes, address of data nodes
 int main(int argc, char *argv[])
@@ -40,10 +42,10 @@ int main(int argc, char *argv[])
     printf("server: waiting for connections...\n");
 
     while(1){
-        char* recvbuf = malloc(4096);
-        char* key_buffer = malloc(256);
-        char* get_buffer = malloc(256);
-        char* value_buffer = malloc(256);
+        char* recvbuf = malloc(BIG_BUFFER_SIZE);
+        char* key_buffer = malloc(KEY_VALUE_BUFFER_SIZE);
+        char* get_buffer = malloc(KEY_VALUE_BUFFER_SIZE);
+        char* value_buffer = malloc(KEY_VALUE_BUFFER_SIZE);
         struct info_package *incoming_package = malloc(sizeof(struct info_package));
 
         sin_size = sizeof(their_addr);
