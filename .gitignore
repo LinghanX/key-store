@@ -1,16 +1,1 @@
-# Created by .ignore support plugin (hsz.mobi)
-
-.gitignore
-.idea/
-CMakeLists.txt
-cmake-build-debug/
-
-client
-
-client
-
-node
-
-out
-
-server
+build
