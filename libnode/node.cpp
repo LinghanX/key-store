@@ -1,6 +1,8 @@
 #include "node.h"
 
-Node::Node() {};
+Node::Node(string id):
+    nodeID(id)
+    {}
 
 bool Node::baz(bool foo) {
     if (foo) {
@@ -8,8 +10,8 @@ bool Node::baz(bool foo) {
     } else {
         return false;
     }
-}
-int Node::NewRandomNodeID() {
-    return 7; // returns a random number
-}
+};
 
+void Node::print() {
+    cout << "The node is " << nodeID.String() << endl;
+}

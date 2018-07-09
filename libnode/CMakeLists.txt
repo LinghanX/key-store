@@ -2,6 +2,8 @@
 set(libnode_SRCS
 node.h
 node.cpp
+key.h
+key.cpp
 )
 
 # Declare the library

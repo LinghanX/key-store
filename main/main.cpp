@@ -13,7 +13,9 @@
 
 int main(int argc, char* argv[]) {
     printf("hello world\n");
-    Node node;
+    Node node("00111");
+
     printf("call node %d\n",  node.baz(true));
+    node.print();
     return 0;
 }
